@@ -115,7 +115,7 @@ void check_boundary()
     {
         if(cur->x >= BLOCK*4 || cur->x <= 0 || cur->y >= BLOCK*4 ||cur->y <= 0 )  //out of boundary
         {
-            car_num--;
+            //car_num--;
             if(cur == car_head)
             {
                 car_head = cur->next;
@@ -143,7 +143,6 @@ void check_boundary()
 void turn(struct Car *tmp)
 {
     r_turn = (float)rand()/RAND_MAX;
-    //printf("%f %f time=%d\n",tmp->x,tmp->y,tmp->time);
     switch (tmp->direction_x)
     {
     case -1://left
@@ -242,31 +241,60 @@ double findmax_power(double a[],int k)
     return max;
 }
 
-void Best_policy() //first policy
+void Best_policy(struct Car *tmp,double power[]) //first policy
+{
+    int maxpower;
+    maxpower = findmax_power(power,tmp->BS_current[0]);
+    if(maxpower != tmp->BS_current[0])
+    {
+        /*printf("range: %f\n",sqrt(pow((tmp->x - BS_array[maxpower].x),2) + pow((tmp->y - BS_array[maxpower].y),2)));
+        printf("location: %f %f\n",tmp->x,tmp->y);
+        printf("dir: %d %d\n",tmp->direction_x,tmp->direction_y);
+            printf("power: %f %f\n",power[maxpower],power[tmp->BS_current[0]]);
+        printf("BS: %d %d\n",maxpower,tmp->BS_current[0]);*/
+        tmp->BS_current[0] = maxpower;
+        handoff[0]++;
+    }
+
+}
+void Threshold_policy(struct Car *tmp, double power[])
+{
+    int maxpower;
+    maxpower = findmax_power(power,tmp->BS_current[1]);
+    if(maxpower != tmp->BS_current[1] && power[tmp->BS_current[1]] < T)
+    {
+        tmp->BS_current[1] = maxpower;
+        handoff[1]++;
+    }
+
+}
+
+void Entrophy_policy(struct Car *tmp, double power[])
+{
+    int maxpower;
+    maxpower = findmax_power(power,tmp->BS_current[2]);
+    if(maxpower != tmp->BS_current[2] && power[maxpower] > (power[tmp->BS_current[2]] + E))
+    {
+        tmp->BS_current[2] = maxpower;
+        handoff[2]++;
+    }
+}
+
+void Principle()
 {
     struct Car *tmp;
     double power[4] = {0,0,0,0}; //4 BS station current power to car
-    int maxpower,i;
+    int maxpower[4] = {0,0,0,0},i; //4 principle
     for(tmp=car_head; tmp!=NULL; tmp=tmp->next)
     {
         power[0] = calculate_power(sqrt(pow((tmp->x - BS_array[0].x),2) + pow((tmp->y - BS_array[0].y),2)));
         power[1] = calculate_power(sqrt(pow((tmp->x - BS_array[1].x),2) + pow((tmp->y - BS_array[1].y),2)));
         power[2] = calculate_power(sqrt(pow((tmp->x - BS_array[2].x),2) + pow((tmp->y - BS_array[2].y),2)));
         power[3] = calculate_power(sqrt(pow((tmp->x - BS_array[3].x),2) + pow((tmp->y - BS_array[3].y),2)));
-        maxpower = findmax_power(power,tmp->BS_current[0]);
-        if(maxpower != tmp->BS_current[0])
-        {
-            /*printf("range: %f\n",sqrt(pow((tmp->x - BS_array[maxpower].x),2) + pow((tmp->y - BS_array[maxpower].y),2)));
-            printf("location: %f %f\n",tmp->x,tmp->y);
-            printf("dir: %d %d\n",tmp->direction_x,tmp->direction_y);
-                printf("power: %f %f\n",power[maxpower],power[tmp->BS_current[0]]);
-            printf("BS: %d %d\n",maxpower,tmp->BS_current[0]);*/
-            tmp->BS_current[0] = maxpower;
-            handoff[0]++;
-        }
-
+        Best_policy(tmp,power);
+        Threshold_policy(tmp,power);
+        Entrophy_policy(tmp,power);
     }
-
 }
 
 
@@ -281,10 +309,10 @@ int main(void)
     {
         simulate_car();
         move(); //car move
-        Best_policy();
+        Principle();
         check_boundary();// check if car is out of boundary
     }
-    printf("%d\n",handoff[0]);
+    printf("%d, %d %d %d\n",car_num,handoff[0],handoff[1],handoff[2]);
     return 0;
 }
 
