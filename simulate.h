@@ -1,9 +1,12 @@
 #ifndef SIMULATE_H
 #define SIMULATE_H
 
-#define Px -50 //less than 1m
-#define velocity 10
-#define BLOCK 750
+#define Px -60.0 //less than 1m
+#define velocity 10.0
+#define BLOCK 750.0
+#define Pmin -125.0
+#define T -110.0
+#define E 5.0
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -26,8 +29,8 @@ struct Car
     double  y;
     int direction_x;
     int direction_y;
-    double power;
-    int BS_current; //current BS
+    double totalpower;
+    int BS_current[4]; //current BS
     int time; //car exist time
     struct Car *next;
 };

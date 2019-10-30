@@ -7,6 +7,8 @@ double spawn_prob;
 float r_turn; //random turn probability
 float r_spawn; //random spawn car probability
 int car_num = 0;
+int handoff[4] = {0,0,0,0};
+
 void init()
 {
     spawn_prob = (1/30.0)*exp(-1/30.0);
@@ -14,10 +16,10 @@ void init()
     BS_array[0].x = BLOCK;
     BS_array[0].y = BLOCK;
     BS_array[1].x = BLOCK*3;
-    BS_array[1].x = BLOCK;
+    BS_array[1].y = BLOCK;
     BS_array[2].x = BLOCK;
     BS_array[2].y = BLOCK*3;
-    BS_array[3].y = BLOCK*3;
+    BS_array[3].x = BLOCK*3;
     BS_array[3].y = BLOCK*3;
     entry_array[0].x = BLOCK;
     entry_array[0].y = 0;
@@ -61,8 +63,11 @@ void simulate_car()
             car_num++;
             car_tmp->x = entry_array[i].x;
             car_tmp->y = entry_array[i].y;
-            car_tmp->BS_current = entry_BS[i];
-            car_tmp->power = Px;
+            car_tmp->BS_current[0] = entry_BS[i];
+            car_tmp->BS_current[1] = entry_BS[i];
+            car_tmp->BS_current[2] = entry_BS[i];
+            car_tmp->BS_current[3] = entry_BS[i];
+            car_tmp->totalpower = Px;
             car_tmp->time = 0;
             car_tmp->next = NULL;
             switch(i/3)
@@ -138,7 +143,7 @@ void check_boundary()
 void turn(struct Car *tmp)
 {
     r_turn = (float)rand()/RAND_MAX;
-    printf("%f %f time=%d\n",tmp->x,tmp->y,tmp->time);
+    //printf("%f %f time=%d\n",tmp->x,tmp->y,tmp->time);
     switch (tmp->direction_x)
     {
     case -1://left
@@ -211,27 +216,75 @@ void move()
         }
     }
 }
-void calculate_Best()
+
+double calculate_power(double x)
+{
+    if(x<=1)
+    {
+        return Px;
+    }
+    else
+    {
+        return Px-20*log10(x);
+    }
+}
+
+double findmax_power(double a[],int k)
+{
+    int max = k,i;
+    for(i=0; i<=3; i++)
+    {
+        if(a[max]<a[i])
+        {
+            max = i;
+        }
+    }
+    return max;
+}
+
+void Best_policy() //first policy
 {
     struct Car *tmp;
+    double power[4] = {0,0,0,0}; //4 BS station current power to car
+    int maxpower,i;
     for(tmp=car_head; tmp!=NULL; tmp=tmp->next)
     {
-        //		printf("%f %f\n",(double)tmp->x/9, (double)tmp->y/9);
+        power[0] = calculate_power(sqrt(pow((tmp->x - BS_array[0].x),2) + pow((tmp->y - BS_array[0].y),2)));
+        power[1] = calculate_power(sqrt(pow((tmp->x - BS_array[1].x),2) + pow((tmp->y - BS_array[1].y),2)));
+        power[2] = calculate_power(sqrt(pow((tmp->x - BS_array[2].x),2) + pow((tmp->y - BS_array[2].y),2)));
+        power[3] = calculate_power(sqrt(pow((tmp->x - BS_array[3].x),2) + pow((tmp->y - BS_array[3].y),2)));
+        maxpower = findmax_power(power,tmp->BS_current[0]);
+        if(maxpower != tmp->BS_current[0])
+        {
+            /*printf("range: %f\n",sqrt(pow((tmp->x - BS_array[maxpower].x),2) + pow((tmp->y - BS_array[maxpower].y),2)));
+            printf("location: %f %f\n",tmp->x,tmp->y);
+            printf("dir: %d %d\n",tmp->direction_x,tmp->direction_y);
+                printf("power: %f %f\n",power[maxpower],power[tmp->BS_current[0]]);
+            printf("BS: %d %d\n",maxpower,tmp->BS_current[0]);*/
+            tmp->BS_current[0] = maxpower;
+            handoff[0]++;
+        }
+
     }
 
 }
+
+
+
 int main(void)
 {
     struct Car *car_tmp;
     int i;
     srand(time(NULL));
     init();
-    for(i=1; i<=75+8; i++)
+    for(i=1; i<=86400; i++)
     {
         simulate_car();
         move(); //car move
+        Best_policy();
         check_boundary();// check if car is out of boundary
     }
+    printf("%d\n",handoff[0]);
     return 0;
 }
 
