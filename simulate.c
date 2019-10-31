@@ -57,7 +57,7 @@ void simulate_car()
     {
         r_spawn = (float)rand()/RAND_MAX;
         //printf("%f\n",r_spawn);
-        if(r_spawn <= 0.03)  //spawn car
+        if(r_spawn <= spawn_prob)  //spawn car
         {
             car_tmp = malloc(sizeof(struct Car));
             car_num++;
@@ -280,11 +280,21 @@ void Entrophy_policy(struct Car *tmp, double power[])
     }
 }
 
+void Defined_policy(struct Car *tmp, double power[])
+{
+    int maxpower;
+    maxpower = findmax_power(power,tmp->BS_current[3]);
+    if((tmp->time % 200 == 0 || power[tmp->BS_current[3]] < Pmin) && maxpower != tmp->BS_current[3])
+    {
+        tmp->BS_current[3] = maxpower;
+        handoff[3]++;
+    }
+}
+
 void Principle()
 {
     struct Car *tmp;
     double power[4] = {0,0,0,0}; //4 BS station current power to car
-    int maxpower[4] = {0,0,0,0},i; //4 principle
     for(tmp=car_head; tmp!=NULL; tmp=tmp->next)
     {
         power[0] = calculate_power(sqrt(pow((tmp->x - BS_array[0].x),2) + pow((tmp->y - BS_array[0].y),2)));
@@ -294,6 +304,7 @@ void Principle()
         Best_policy(tmp,power);
         Threshold_policy(tmp,power);
         Entrophy_policy(tmp,power);
+        Defined_policy(tmp,power);
     }
 }
 
@@ -312,7 +323,7 @@ int main(void)
         Principle();
         check_boundary();// check if car is out of boundary
     }
-    printf("%d, %d %d %d\n",car_num,handoff[0],handoff[1],handoff[2]);
+    printf("%d, %d %d %d %d\n",car_num,handoff[0],handoff[1],handoff[2],handoff[3]);
     return 0;
 }
 
