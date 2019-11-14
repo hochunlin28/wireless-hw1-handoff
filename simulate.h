@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 
 //real distance is (x or y)/9
 struct BS
@@ -29,7 +30,7 @@ struct Car
     double  y;
     int direction_x;
     int direction_y;
-    double totalpower;
+    double totalpower[4];
     int BS_current[4]; //current BS
     int time; //car exist time
     struct Car *next;
